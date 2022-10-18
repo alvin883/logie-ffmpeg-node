@@ -5,19 +5,20 @@
   "type": "module",
   "main": "build/server.js",
   "scripts": {
-    "watch-ts": "tsc --watch"
+    "build": "tsc",
+    "watch-ts": "tsc --watch",
+    "start": "node ./build/server.js",
+    "docker": "docker build -t logie-ffmpeg-node .",
+    "docker-run": "docker run --publish 3000:3000 logie-ffmpeg-node"
   },
   "keywords": [],
   "author": "",
   "license": "ISC",
   "dependencies": {
-    "@ffmpeg-installer/ffmpeg": "^1.1.0",
-    "@ffprobe-installer/ffprobe": "^1.4.1",
     "@types/fluent-ffmpeg": "^2.1.20",
-    "@types/mkdirp": "^1.0.2",
     "@types/node": "^18.11.0",
+    "fastify": "^4.9.2",
     "fluent-ffmpeg": "^2.1.2",
-    "mkdirp": "^1.0.4",
     "typescript": "^4.8.4"
   }
 }
