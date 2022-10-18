@@ -1,0 +1,20 @@
+// Convert image into buffer instead of saving it into a file
+
+const noop = () => {};
+ffmpeg
+  .input('D:/videos/input.mp4')
+  .inputOptions(['-ss', 5])
+
+  .output({
+    writable: true,
+    write: (data) => {
+      data; // = image buffer
+    },
+    on: noop,
+    once: noop,
+    pipe: noop,
+    emit: noop,
+    end: noop,
+  })
+  .outputOptions(['-vframes 1', '-f image2pipe'])
+  .run();

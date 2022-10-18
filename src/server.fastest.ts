@@ -3,6 +3,7 @@ import { fastify } from 'fastify';
 import { dirname, resolve as pathResolve } from 'path';
 import { fileURLToPath } from 'url';
 import { promisify } from 'util';
+import { secondsToFormatedDuration } from './SecondsToFormatedDuration.js';
 import { performance } from 'perf_hooks';
 
 const __filename = fileURLToPath(import.meta.url);
@@ -12,46 +13,44 @@ const server = fastify();
 
 const generateScreenshots = async (
   m3u8a: string,
-  totalScreenshots: number = 9
+  totalScreenshots: number = 10
 ) => {
-  const m3u8 = pathResolve(__dirname, '../VID_20220420_220616.mp4');
   const screenshotsDir = pathResolve(__dirname, '../screenshots');
   const ffprobe = await promisify(ffmpeg.ffprobe);
+  const m3u8 = pathResolve(__dirname, '../VID_20220420_183943.mp4');
   const metadata = (await ffprobe(m3u8)) as ffmpeg.FfprobeData;
   const duration = Math.floor(metadata.format.duration);
   const interval = Math.floor(duration / totalScreenshots);
 
-  return new Promise((resolve, reject) => {
-    const start = performance.now();
-    ffmpeg(m3u8)
-      .addOutput(pathResolve(screenshotsDir, `inline-in-%d.jpg`), {
-        end: true,
-      })
+  let promises = [];
 
-      // Where did I know all of this args? no that's not me, it's taken from
-      // here: https://stackoverflow.com/a/24563686/6049731
-      .outputOptions(
-        '-vf',
-        `fps=1/${interval}`,
-        '-vframes',
-        '10',
-        '-qscale:v',
-        '2'
-      )
+  for (let index = 0; index < totalScreenshots; index++) {
+    const timestamp = index === 0 ? 1 : index * interval;
 
-      .on('end', () => {
-        console.log(`Screenshot taken`);
-        const end = performance.now();
-        console.log(`duration: ${end - start}`);
-        console.log(`----------------------------------------`);
-        resolve(true);
-      })
-      .on('error', (err) => {
-        console.error(`Error`);
-        reject(err);
-      })
-      .run();
-  });
+    const promise = new Promise((resolve, reject) => {
+      const start = performance.now();
+      ffmpeg(m3u8)
+        .seekInput(`${secondsToFormatedDuration(timestamp)}.000`)
+        .addOutput(pathResolve(screenshotsDir, `screenshot-${index + 1}.jpg`))
+        .outputOptions('-frames', '1')
+        .on('end', () => {
+          console.log(`[${index + 1}] Screenshot taken`);
+          const end = performance.now();
+          console.log(`[${index + 1}] duration: ${end - start}`);
+          console.log(`----------------------------------------`);
+          resolve(true);
+        })
+        .on('error', (err) => {
+          console.error(`[${index + 1}] Error`);
+          reject(err);
+        })
+        .run();
+    });
+
+    promises.push(promise);
+  }
+
+  return Promise.all(promises);
 };
 
 // Declare a route
